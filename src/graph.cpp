@@ -30,8 +30,7 @@ namespace slam
 
     // Advertise topics
     ros::NodeHandle nhp("~");
-    pose_pub_ = nhp.advertise<nav_msgs::Odometry>("graph_camera_odometry", 1);
-    graph_pub_ = nhp.advertise<stereo_slam::GraphPoses>("graph_poses", 2);
+    path_pub_ = nhp.advertise<nav_msgs::Path>("graph_poses", 1);
   }
 
   void Graph::run()
@@ -201,16 +200,7 @@ namespace slam
     saveGraph();
 
     // Publish the graph
-    publishGraph();
-
-    // Publish camera pose
-    int last_idx = -1;
-    {
-      mutex::scoped_lock lock(mutex_graph_);
-      last_idx = graph_optimizer_.vertices().size() - 1;
-    }
-    tf::Transform updated_camera_pose = getVertexCameraPose(last_idx, true);
-    publishCameraPose(updated_camera_pose);
+    publishPath();
   }
 
   tf::Transform Graph::correctClusterPose(tf::Transform initial_pose)
@@ -364,10 +354,12 @@ namespace slam
     graph_optimizer_.initializeOptimization();
     graph_optimizer_.optimize(20);
 
-    ROS_INFO_STREAM("[Localization:] Optimization done in graph with " << graph_optimizer_.vertices().size() << " vertices.");
+    ROS_INFO_STREAM("[Localization:] Optimization done in graph with " <<
+      graph_optimizer_.vertices().size() << " vertices.");
   }
 
-  void Graph::findClosestVertices(int vertex_id, int window_center, int window, int best_n, vector<int> &neighbors)
+  void Graph::findClosestVertices(int vertex_id, int window_center, int window,
+    int best_n, vector<int> &neighbors)
   {
     // Init
     neighbors.clear();
@@ -651,26 +643,18 @@ namespace slam
       ROS_ERROR("[Localization:] Error deleting the locking file.");
   }
 
-  void Graph::publishCameraPose(tf::Transform camera_pose)
+  void Graph::publishPath()
   {
-    if (pose_pub_.getNumSubscribers() > 0)
-    {
-      nav_msgs::Odometry pose_msg;
-      pose_msg.header.stamp = ros::Time::now();
-      tf::poseTFToMsg(camera_pose, pose_msg.pose.pose);
-      pose_pub_.publish(pose_msg);
-    }
-  }
-
-  void Graph::publishGraph()
-  {
-    if (graph_pub_.getNumSubscribers() > 0)
+    if (path_pub_.getNumSubscribers() > 0)
     {
       mutex::scoped_lock lock(mutex_graph_);
 
+      // Init the message
+      nav_msgs::Path path;
+      path.header.stamp = ros::Time::now();
+      path.header.frame_id = "map";
+
       // Build the graph data
-      vector<int> ids;
-      vector<double> x, y, z, qx, qy, qz, qw;
       vector<int> processed_frames;
       for (uint i=0; i<graph_optimizer_.vertices().size(); i++)
       {
@@ -687,29 +671,11 @@ namespace slam
         if (found) continue;
         processed_frames.push_back(id);
 
-        tf::Transform pose = getVertexCameraPose(i, false);
-        ids.push_back(id);
-        x.push_back(pose.getOrigin().x());
-        y.push_back(pose.getOrigin().y());
-        z.push_back(pose.getOrigin().z());
-        qx.push_back(pose.getRotation().x());
-        qy.push_back(pose.getRotation().y());
-        qz.push_back(pose.getRotation().z());
-        qw.push_back(pose.getRotation().w());
+        geometry_msgs::PoseStamped pose;
+        tf::poseTFToMsg(getVertexCameraPose(i, false), pose.pose);
+        path.poses.push_back(pose);
       }
-
-      // Publish
-      stereo_slam::GraphPoses graph_msg;
-      graph_msg.header.stamp = ros::Time::now();
-      graph_msg.id = ids;
-      graph_msg.x = x;
-      graph_msg.y = y;
-      graph_msg.z = z;
-      graph_msg.qx = qx;
-      graph_msg.qy = qy;
-      graph_msg.qz = qz;
-      graph_msg.qw = qw;
-      graph_pub_.publish(graph_msg);
+      path_pub_.publish(path);
     }
   }
 

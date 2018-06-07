@@ -2,6 +2,7 @@
 
 #include <boost/thread.hpp>
 #include <boost/filesystem.hpp>
+
 #include "constants.h"
 #include "publisher.h"
 #include "tracking.h"
@@ -20,6 +21,28 @@ void readTrackingParams(slam::Tracking::Params &tracking_params)
   nhp.param("refine",       tracking_params.refine,       false);
 }
 
+void recursiveCopy(const fs::path &src, const fs::path &dst)
+{
+  if (fs::exists(dst))
+  {
+    throw std::runtime_error(dst.generic_string() + " exists");
+  }
+
+  if (fs::is_directory(src))
+  {
+    fs::create_directories(dst);
+    for (fs::directory_entry& item : fs::directory_iterator(src)) {
+      recursiveCopy(item.path(), dst/item.path().filename());
+    }
+  }
+  else if (fs::is_regular_file(src)) {
+    fs::copy(src, dst);
+  }
+  else {
+    throw std::runtime_error(dst.generic_string() + " not dir or file");
+  }
+}
+
 /** \brief Main entry point
   */
 int main(int argc, char **argv)
@@ -32,9 +55,26 @@ int main(int argc, char **argv)
   string output_dir = slam::WORKING_DIRECTORY;
   if (fs::is_directory(output_dir))
   {
-    ROS_ERROR_STREAM("[Localization:] ERROR -> The output directory already exists: " <<
-      output_dir);
-    return 0;
+    // Make a backup
+    int counter = 1;
+    bool exists = true;
+    string tmp_dir;
+    while (exists) {
+      tmp_dir = output_dir.substr(0, output_dir.size()-1) + "_bk/" + to_string(counter);
+
+      if (fs::is_directory(tmp_dir))
+        counter++;
+      else
+        exists= false;
+    }
+    recursiveCopy(output_dir, tmp_dir);
+
+    ROS_WARN_STREAM("[Localization:] WARNING -> The output directory " <<
+      "already exists. Creating a backup of " << output_dir << " into " <<
+      tmp_dir);
+
+    // And remove
+    fs::remove_all(output_dir);
   }
   fs::path dir0(output_dir);
   if (!fs::create_directory(dir0))

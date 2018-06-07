@@ -52,7 +52,7 @@ namespace slam
 
     // Left/right matching
     vector<cv::DMatch> matches;
-    Tools::ratioMatching(l_desc, r_desc, 0.8, matches);
+    Tools::ratioMatching(l_desc, r_desc, 0.88, matches);
 
     // Filter matches by epipolar+
     matches_filtered_.clear();

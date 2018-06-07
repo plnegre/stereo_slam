@@ -9,7 +9,7 @@ namespace slam
 {
 
   Tracking::Tracking(Publisher *f_pub, Graph *graph)
-    : f_pub_(f_pub), graph_(graph), frame_id_(0), jump_detected_(false), secs_to_filter_(10.0)
+    : f_pub_(f_pub), graph_(graph), frame_id_(0)
   {}
 
   void Tracking::run()
@@ -58,13 +58,15 @@ namespace slam
     // Message sync
     boost::shared_ptr<Sync> sync;
     odom_sub      .subscribe(nh, params_.odom_topic, 20);
-    left_sub      .subscribe(it, params_.camera_topic+"/left/image_rect_color", 5);
-    right_sub     .subscribe(it, params_.camera_topic+"/right/image_rect_color", 5);
+    left_sub      .subscribe(it, params_.camera_topic+"/left/image_rect", 5);
+    right_sub     .subscribe(it, params_.camera_topic+"/right/image_rect", 5);
     left_info_sub .subscribe(nh, params_.camera_topic+"/left/camera_info",  5);
     right_info_sub.subscribe(nh, params_.camera_topic+"/right/camera_info", 5);
     cloud_sub     .subscribe(nh, params_.camera_topic+"/points2", 5);
-    sync.reset(new Sync(SyncPolicy(10), odom_sub, left_sub, right_sub, left_info_sub, right_info_sub, cloud_sub) );
-    sync->registerCallback(bind(&Tracking::msgsCallback, this, _1, _2, _3, _4, _5, _6));
+    sync.reset(new Sync(SyncPolicy(10), odom_sub, left_sub, right_sub,
+      left_info_sub, right_info_sub, cloud_sub) );
+    sync->registerCallback(bind(&Tracking::msgsCallback, this, _1, _2, _3, _4,
+      _5, _6));
 
     ros::spin();
   }
@@ -77,7 +79,6 @@ namespace slam
       const sensor_msgs::CameraInfoConstPtr& r_info_msg,
       const sensor_msgs::PointCloud2ConstPtr& cloud_msg)
   {
-
     tf::Transform c_odom_robot = Tools::odomTotf(*odom_msg);
     double timestamp = l_img_msg->header.stamp.toSec();
 
@@ -145,10 +146,10 @@ namespace slam
       bool graph_ready = graph_->getFramePose(frame_id_ - 1, last_frame_pose);
       if (!graph_ready) return;
 
-
       // Previous/current frame odometry difference
       tf::Transform c_camera_odom_pose = c_odom_robot * odom2camera_;
-      tf::Transform odom_diff = odom_pose_history_[odom_pose_history_.size()-1].inverse() * c_camera_odom_pose;
+      tf::Transform odom_diff =
+        odom_pose_history_[odom_pose_history_.size()-1].inverse() * c_camera_odom_pose;
 
       // Refine its position relative to the previous frame
       tf::Transform correction;
@@ -164,7 +165,8 @@ namespace slam
 
         if (refine_valid)
         {
-          ROS_INFO_STREAM("[Localization:] Pose refine successful, error: " << error << ", inliers: " << num_inliers);
+          ROS_INFO_STREAM("[Localization:] Pose refine successful, error: " <<
+            error << ", inliers: " << num_inliers);
 
           c_frame_.setInliersNumWithPreviousFrame(num_inliers);
           c_frame_.setSigmaWithPreviousFrame(sigma);
@@ -204,52 +206,15 @@ namespace slam
     // Convert camera to robot pose
     tf::Transform robot_pose = c_frame_.getCameraPose() * odom2camera_.inverse();
 
-    // Detect a big jump
-    double jump = Tools::poseDiff3D(robot_pose, prev_robot_pose_);
-    if (!jump_detected_ && jump > 0.8)
-    {
-      jump_time_ = ros::WallTime::now();
-      jump_detected_ = true;
-    }
-    if (jump_detected_ && ( ros::WallTime::now().toSec() - jump_time_.toSec() > secs_to_filter_ )    )
-    {
-      jump_detected_ = false;
-    }
-
-
-    tf::Transform pose = robot_pose;
-    if (jump_detected_)
-    {
-      // Filter big jumps
-      double m = 1/(10*secs_to_filter_);
-      double factor = m * (ros::WallTime::now().toSec() - jump_time_.toSec());
-
-      double c_x = pose.getOrigin().x();
-      double c_y = pose.getOrigin().y();
-      double c_z = pose.getOrigin().z();
-
-      double p_x = prev_robot_pose_.getOrigin().x();
-      double p_y = prev_robot_pose_.getOrigin().y();
-      double p_z = prev_robot_pose_.getOrigin().z();
-
-      double x = factor * c_x + (1-factor) * p_x;
-      double y = factor * c_y + (1-factor) * p_y;
-      double z = factor * c_z + (1-factor) * p_z;
-
-      tf::Vector3 filtered_pose(x, y, z);
-      pose.setOrigin(filtered_pose);
-    }
-
-
     // Publish
     nav_msgs::Odometry pose_msg = *odom_msg;
-    tf::poseTFToMsg(pose, pose_msg.pose.pose);
+    tf::poseTFToMsg(robot_pose, pose_msg.pose.pose);
     pose_pub_.publish(pose_msg);
-    tf_broadcaster_.sendTransform(tf::StampedTransform(pose, odom_msg->header.stamp, "map", odom_msg->child_frame_id));
-
+    tf_broadcaster_.sendTransform(tf::StampedTransform(robot_pose,
+      odom_msg->header.stamp, "map", odom_msg->child_frame_id));
 
     // Store
-    prev_robot_pose_ = pose;
+    prev_robot_pose_ = robot_pose;
   }
 
   bool Tracking::getOdom2CameraTf(nav_msgs::Odometry odom_msg,

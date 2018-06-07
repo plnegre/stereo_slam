@@ -9,7 +9,7 @@
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
 #include <image_geometry/pinhole_camera_model.h>
-#include <nav_msgs/Odometry.h>
+#include <nav_msgs/Path.h>
 
 #include <cv.h>
 #include <highgui.h>
@@ -206,14 +206,9 @@ protected:
    */
   void saveFrame(Frame frame);
 
-  /** \brief Publishes the graph camera pose
-   * \param Camera pose
-   */
-  void publishCameraPose(tf::Transform camera_pose);
-
   /** \brief Publishes all the graph
    */
-  void publishGraph();
+  void publishPath();
 
 private:
 
@@ -243,9 +238,7 @@ private:
 
   image_geometry::PinholeCameraModel camera_model_; //!> Pinhole left camera model
 
-  ros::Publisher pose_pub_; //!> Camera pose publisher
-
-  ros::Publisher graph_pub_; //!> Graph publisher
+  ros::Publisher path_pub_; //!> Path publisher
 
   vector<Edge> edges_information_; // Edges information
 };

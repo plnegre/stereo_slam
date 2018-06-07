@@ -304,6 +304,7 @@ namespace slam
         // Loop found!
         if (inliers.size() >= LC_MIN_INLIERS)
         {
+          ROS_INFO("[Localization:] LOOP CLOSURE FOUND!");
           tf::Transform estimated_transform = Tools::buildTransformation(rvec, tvec);
           estimated_transform = estimated_transform.inverse();
 

@@ -202,12 +202,6 @@ private:
 
   tf::Transform prev_robot_pose_; //!> Stores the previous corrected odometry pose
 
-  ros::WallTime jump_time_; //!> Stores the time at which the jump starts
-
-  bool jump_detected_; //!> Indicates when a big correction is detected
-
-  double secs_to_filter_; //!> Number of seconds that filter will be applied
-
   // Topic sync
   typedef message_filters::sync_policies::ApproximateTime<nav_msgs::Odometry,
                                                           sensor_msgs::Image,
