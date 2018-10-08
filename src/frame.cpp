@@ -34,17 +34,10 @@ namespace slam
     cv::Mat l_desc, r_desc;
     vector<cv::KeyPoint> l_kp, r_kp;
 
-    // ORB from Opencv
-    // cv::Ptr<cv::Feature2D> orb;
-    // orb = cv::ORB::create(1500, 1.2, 8, 10, 0, 2, cv::ORB::HARRIS_SCORE, 10);
-    // orb->detectAndCompute (l_img_gray, cv::noArray(), l_kp, l_desc);
-    // orb->detectAndCompute (r_img_gray, cv::noArray(), r_kp, r_desc);
-
-    // SIFT
-    cv::Ptr<cv::Feature2D> sift;
-    sift = cv::xfeatures2d::SIFT::create();
-    sift->detectAndCompute(l_img_gray, cv::noArray(), l_kp, l_desc);
-    sift->detectAndCompute(r_img_gray, cv::noArray(), r_kp, r_desc);
+    // KAZE
+    cv::Ptr<cv::Feature2D> kaze = cv::KAZE::create(false, false, 0.0005f);
+    kaze->detectAndCompute(l_img_gray, cv::noArray(), l_kp, l_desc);
+    kaze->detectAndCompute(r_img_gray, cv::noArray(), r_kp, r_desc);
 
     // Stores non-filtered keypoints
     l_nonfiltered_kp_ = l_kp;
@@ -98,9 +91,8 @@ namespace slam
     if (l_img_.cols == 0)
       return sift;
 
-    cv::Ptr<cv::Feature2D> cv_extractor;
-    cv_extractor = cv::xfeatures2d::SIFT::create();
-    cv_extractor->compute(l_img_, l_kp_, sift);
+    cv::Ptr<cv::Feature2D> kaze = cv::AKAZE::create();
+    kaze->compute(l_img_, l_kp_, sift);
 
     return sift;
   }

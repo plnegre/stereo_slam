@@ -111,6 +111,11 @@ int main(int argc, char **argv)
   // Loop closing object is the only one that needs finalization
   loop_closing.finalize();
 
+  // Join the threads
+  trackingThread.join();
+  graphThread.join();
+  loopClosingThread.join();
+
   ros::shutdown();
 
   return 0;

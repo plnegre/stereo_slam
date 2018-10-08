@@ -541,14 +541,14 @@ namespace slam
     for (uint i=0; i<cand_kfs.size(); i++)
     {
       string frame_id_str = Tools::convertTo5digits(cand_kfs[i]);
-      string keyframe_file = WORKING_DIRECTORY + "keyframes/" + frame_id_str + ".jpg";
+      string keyframe_file = WORKING_DIRECTORY + "keyframes/" + frame_id_str + "_left.png";
       cv::Mat kf = cv::imread(keyframe_file, CV_LOAD_IMAGE_COLOR);
-
       // Add the keyframe identifier
       stringstream s;
       s << " Keyframe " << cand_kfs[i];
       cv::Size text_size = cv::getTextSize(s.str(), cv::FONT_HERSHEY_PLAIN, 1, 1, &baseline);
       cv::Mat im_text = cv::Mat(kf.rows + text_size.height + 10, kf.cols, kf.type());
+      ROS_INFO_STREAM("DBG 4: " << im_text.rows << ", " << im_text.cols << " | " << kf.rows << ", " << kf.cols);
       kf.copyTo(im_text.rowRange(0, kf.rows).colRange(0, kf.cols));
       im_text.rowRange(kf.rows, im_text.rows).setTo(cv::Scalar(255,255,255));
       cv::putText(im_text, s.str(), cv::Point(5, im_text.rows - 5), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(0,0,0), 1, 8);
@@ -564,7 +564,7 @@ namespace slam
 
     // Read the current keyframe
     string frame_id_str = Tools::convertTo5digits(c_cluster_.getFrameId());
-    string keyframe_file = WORKING_DIRECTORY + "keyframes/" + frame_id_str + ".jpg";
+    string keyframe_file = WORKING_DIRECTORY + "keyframes/" + frame_id_str + "_left.png";
     cv::Mat current_kf_tmp = cv::imread(keyframe_file, CV_LOAD_IMAGE_COLOR);
 
     // Add the keyframe identifier
@@ -642,7 +642,7 @@ namespace slam
     }
 
     // Save
-    string lc_file = loop_closures_dir_ + "/" + Tools::convertTo5digits(num_loop_closures_) + ".jpg";
+    string lc_file = loop_closures_dir_ + "/" + Tools::convertTo5digits(num_loop_closures_) + ".png";
     cv::imwrite( lc_file, lc_image );
 
     // Publish

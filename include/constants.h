@@ -23,7 +23,7 @@ namespace slam
 
   static const int LC_DISCARD_WINDOW = 10;
 
-  static const float LC_MAX_EDGE_DIFF = 10.0;
+  static const float LC_MAX_EDGE_DIFF = 2.0;
 
   static const float TRACKING_MIN_OVERLAP = 80;
 
@@ -31,7 +31,7 @@ namespace slam
 
   static const float LC_EPIPOLAR_THRESH = 4.0;
 
-  static const float STEREO_EPIPOLAR_THRESH = 2.5;
+  static const float STEREO_EPIPOLAR_THRESH = 1.5;
 
   /*
   DEFAULT VALUES ARE:

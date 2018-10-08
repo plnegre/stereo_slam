@@ -25,6 +25,7 @@
 #include <pcl/filters/filter.h>
 #include <pcl/filters/approximate_voxel_grid.h>
 #include <pcl/filters/crop_box.h>
+#include <pcl/filters/passthrough.h>
 
 #include <opencv2/opencv.hpp>
 

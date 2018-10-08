@@ -144,7 +144,9 @@ namespace slam
       // Get the pose of the last frame id
       tf::Transform last_frame_pose;
       bool graph_ready = graph_->getFramePose(frame_id_ - 1, last_frame_pose);
-      if (!graph_ready) return;
+      if (!graph_ready) {
+        return;
+      }
 
       // Previous/current frame odometry difference
       tf::Transform c_camera_odom_pose = c_odom_robot * odom2camera_;
@@ -187,7 +189,6 @@ namespace slam
       // Filter cloud
       PointCloudRGB::Ptr cloud_filtered(new PointCloudRGB);
       cloud_filtered = filterCloud(pcl_cloud);
-
 
       // Set frame data
       c_frame_.setCameraPose(c_camera_pose);
@@ -254,7 +255,7 @@ namespace slam
     {
       // Check odometry distance
       double pose_diff = Tools::poseDiff3D(p_frame_.getCameraPose(), c_frame_.getCameraPose());
-      if (pose_diff > 0.3)
+      if (pose_diff > 0.2)
       {
 
         // Compute overlap to decide if new keyframe is needed.
@@ -294,6 +295,11 @@ namespace slam
           // Publish debugging image
           if (overlapping_pub_.getNumSubscribers() > 0)
             publishOverlap(cloud_xyz, last_2_current, overlap);
+        }
+        else
+        {
+          ROS_WARN_STREAM("[Localization:] Not enough points into the pointcloud. " << 
+            c_frame_.getPointCloud()->points.size() << " points (MIN: " << MIN_CLOUD_SIZE << ").");
         }
 
         // Add frame when overlap is less than...
@@ -456,9 +462,16 @@ namespace slam
     PointCloudRGB::Ptr cloud(new PointCloudRGB);
     pcl::removeNaNFromPointCloud(*in_cloud, *cloud, indicies);
 
-    // Voxel grid filter (used as x-y surface extraction. Note that leaf in z is very big)
+    // Z filtering
+    pcl::PassThrough<PointRGB> pass;
+    pass.setFilterFieldName("z");
+    pass.setFilterLimits(0.2, 3.0);
+    pass.setInputCloud(cloud);
+    pass.filter(*cloud);
+
+    // Voxelize
     pcl::ApproximateVoxelGrid<PointRGB> grid;
-    grid.setLeafSize(0.08, 0.08, 0.1);
+    grid.setLeafSize(0.001, 0.001, 0.001);
     grid.setDownsampleAllData(true);
     grid.setInputCloud(cloud);
     grid.filter(*cloud);
@@ -473,7 +486,7 @@ namespace slam
     cv::Mat img(h, w, CV_8UC3, cv::Scalar(0,0,0));
 
     // Draw last fixed frame bounding box
-    cv::rectangle(img, cv::Point(3*w/8, 3*h/8), cv::Point(5*w/8, 5*h/8), cv::Scalar(255, 255, 255) );
+    cv::rectangle(img, cv::Point(3*w/8, 3*h/8), cv::Point(5*w/8, 5*h/8), cv::Scalar(255, 255, 255), 3);
 
     float w_scale = (w/4) / (last_max_pt_(0) - last_min_pt_(0));
     float h_scale = (h/4) / (last_max_pt_(1) - last_min_pt_(1));
@@ -491,10 +504,10 @@ namespace slam
     p4 = movement * p4;
 
     // Draw polygon
-    cv::line(img, cv::Point(w/2 + p1.x()*w_scale, h/2 + p1.y()*h_scale), cv::Point(w/2 + p2.x()*w_scale, h/2 + p2.y()*h_scale), cv::Scalar(255,0,0));
-    cv::line(img, cv::Point(w/2 + p2.x()*w_scale, h/2 + p2.y()*h_scale), cv::Point(w/2 + p3.x()*w_scale, h/2 + p3.y()*h_scale), cv::Scalar(255,0,0));
-    cv::line(img, cv::Point(w/2 + p3.x()*w_scale, h/2 + p3.y()*h_scale), cv::Point(w/2 + p4.x()*w_scale, h/2 + p4.y()*h_scale), cv::Scalar(255,0,0));
-    cv::line(img, cv::Point(w/2 + p4.x()*w_scale, h/2 + p4.y()*h_scale), cv::Point(w/2 + p1.x()*w_scale, h/2 + p1.y()*h_scale), cv::Scalar(255,0,0));
+    cv::line(img, cv::Point(w/2 + p1.x()*w_scale, h/2 + p1.y()*h_scale), cv::Point(w/2 + p2.x()*w_scale, h/2 + p2.y()*h_scale), cv::Scalar(255,0,0), 3);
+    cv::line(img, cv::Point(w/2 + p2.x()*w_scale, h/2 + p2.y()*h_scale), cv::Point(w/2 + p3.x()*w_scale, h/2 + p3.y()*h_scale), cv::Scalar(255,0,0), 3);
+    cv::line(img, cv::Point(w/2 + p3.x()*w_scale, h/2 + p3.y()*h_scale), cv::Point(w/2 + p4.x()*w_scale, h/2 + p4.y()*h_scale), cv::Scalar(255,0,0), 3);
+    cv::line(img, cv::Point(w/2 + p4.x()*w_scale, h/2 + p4.y()*h_scale), cv::Point(w/2 + p1.x()*w_scale, h/2 + p1.y()*h_scale), cv::Scalar(255,0,0), 3);
 
     // Insert text
     stringstream s;

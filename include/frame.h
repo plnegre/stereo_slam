@@ -13,8 +13,6 @@
 #include <pcl_ros/transforms.h>
 
 #include <opencv2/opencv.hpp>
-#include <opencv2/features2d.hpp>
-#include <opencv2/xfeatures2d.hpp>
 
 #include <pcl/point_types.h>
 

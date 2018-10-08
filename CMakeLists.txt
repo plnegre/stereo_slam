@@ -55,7 +55,8 @@ find_package(libhaloc REQUIRED)
 find_package(PCL REQUIRED)
 
 # Dependencies - OpenCV:
-find_package(OpenCV REQUIRED)
+set(OpenCV_DIR /usr/local/share/OpenCV)
+find_package(OpenCV 3.4.2 REQUIRED)
 link_directories(${OpenCV_LIBRARY_DIRS})
 
 # Dependencies - Suitesparse:
@@ -86,7 +87,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native ")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall  -O3 -march=native")
 
 # Localization node
-add_executable(localization
+add_executable(stereo_slam
   src/node.cpp
   src/frame.cpp
   src/publisher.cpp
@@ -94,13 +95,13 @@ add_executable(localization
   src/graph.cpp
   src/loop_closing.cpp
   src/cluster.cpp)
-target_link_libraries(localization
+target_link_libraries(stereo_slam
   ${EIGEN3_LIBRARIES}
   ${libhaloc_LIBRARIES}
-  ${OpenCV_LIBRARIES}
+  ${OpenCV_LIBS}
   ${SUITESPARSE_LIBRARIES}
   ${G2O_LIBRARIES}
   ${CERES_LIBRARIES}
   cholmod
   ${catkin_LIBRARIES})
-add_dependencies(localization ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(stereo_slam ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

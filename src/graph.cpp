@@ -503,8 +503,8 @@ namespace slam
     string frame_id_str = Tools::convertTo5digits(frame.getId());
 
     // Save keyframe
-    string l_kf = WORKING_DIRECTORY + "keyframes/" + frame_id_str + "_left.jpg";
-    string r_kf = WORKING_DIRECTORY + "keyframes/" + frame_id_str + "_right.jpg";
+    string l_kf = WORKING_DIRECTORY + "keyframes/" + frame_id_str + "_left.png";
+    string r_kf = WORKING_DIRECTORY + "keyframes/" + frame_id_str + "_right.png";
     cv::imwrite(l_kf, l_img);
     cv::imwrite(r_kf, r_img);
 
@@ -518,7 +518,7 @@ namespace slam
       for (uint j=0; j<clusters[i].size(); j++)
         cv::circle(c_img, kp[clusters[i][j]].pt, 5, color, -1);
     }
-    string clusters_file = WORKING_DIRECTORY + "clusters/" + frame_id_str + ".jpg";
+    string clusters_file = WORKING_DIRECTORY + "clusters/" + frame_id_str + ".png";
     cv::imwrite(clusters_file, c_img);
   }
 
